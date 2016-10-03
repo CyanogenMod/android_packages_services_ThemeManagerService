@@ -374,7 +374,7 @@ public class ThemeManagerService extends Service {
 
         mPM = getPackageManager();
 
-        publishThemesTile();
+        //publishThemesTile();
         if (!isThemeApiUpToDate()) {
             Log.d(TAG, "The system has been upgraded to a theme new api, " +
                     "checking if currently set theme is compatible");
@@ -664,17 +664,18 @@ public class ThemeManagerService extends Service {
     }
 
     private boolean updateIcons(String pkgName) {
-        ThemeUtils.clearIconCache();
-        try {
-            if (pkgName.equals(SYSTEM_DEFAULT)) {
-                mPM.updateIconMaps(null);
-            } else {
-                mPM.updateIconMaps(pkgName);
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "Changing icons failed", e);
-            return false;
-        }
+        // TODO: uncomment once icon support is added back in
+//        ThemeUtils.clearIconCache();
+//        try {
+//            if (pkgName.equals(SYSTEM_DEFAULT)) {
+//                mPM.updateIconMaps(null);
+//            } else {
+//                mPM.updateIconMaps(pkgName);
+//            }
+//        } catch (Exception e) {
+//            Log.w(TAG, "Changing icons failed", e);
+//            return false;
+//        }
         return true;
     }
 
@@ -818,10 +819,6 @@ public class ThemeManagerService extends Service {
         boolean success;
         success = setCustomLockScreenWallpaper(pkgName);
 
-        if (success) {
-            sendBroadcastAsUser(new Intent(Intent.ACTION_KEYGUARD_WALLPAPER_CHANGED),
-                    UserHandle.ALL);
-        }
         return success;
     }
 
@@ -829,11 +826,11 @@ public class ThemeManagerService extends Service {
         WallpaperManager wm = WallpaperManager.getInstance(this);
         try {
             if (SYSTEM_DEFAULT.equals(pkgName) || TextUtils.isEmpty(pkgName)) {
-                wm.clearKeyguardWallpaper();
+                wm.clear(WallpaperManager.FLAG_LOCK);
             } else {
                 InputStream in = ImageUtils.getCroppedKeyguardStream(pkgName, this);
                 if (in != null) {
-                    wm.setKeyguardStream(in);
+                    wm.setStream(in, null, true, WallpaperManager.FLAG_LOCK);
                     IoUtils.closeQuietly(in);
                 }
             }
@@ -848,13 +845,13 @@ public class ThemeManagerService extends Service {
         WallpaperManager wm = WallpaperManager.getInstance(this);
         if (SYSTEM_DEFAULT.equals(pkgName)) {
             try {
-                wm.clear();
+                wm.clear(WallpaperManager.FLAG_SYSTEM);
             } catch (IOException e) {
                 return false;
             }
         } else if (TextUtils.isEmpty(pkgName)) {
             try {
-                wm.clear(false);
+                wm.clear(WallpaperManager.FLAG_SYSTEM);
             } catch (IOException e) {
                 return false;
             }
@@ -863,7 +860,7 @@ public class ThemeManagerService extends Service {
             try {
                 in = ImageUtils.getCroppedWallpaperStream(pkgName, id, this);
                 if (in != null)
-                    wm.setStream(in);
+                    wm.setStream(in, null, true, WallpaperManager.FLAG_SYSTEM);
             } catch (Exception e) {
                 return false;
             } finally {
@@ -1188,9 +1185,9 @@ public class ThemeManagerService extends Service {
     }
 
     private void sendThemeResourcesCachedBroadcast(String themePkgName, int resultCode) {
-        final Intent intent = new Intent(Intent.ACTION_THEME_RESOURCES_CACHED);
-        intent.putExtra(Intent.EXTRA_THEME_PACKAGE_NAME, themePkgName);
-        intent.putExtra(Intent.EXTRA_THEME_RESULT, resultCode);
+        final Intent intent = new Intent(cyanogenmod.content.Intent.ACTION_THEME_RESOURCES_CACHED);
+        intent.putExtra(cyanogenmod.content.Intent.EXTRA_THEME_PACKAGE_NAME, themePkgName);
+        intent.putExtra(cyanogenmod.content.Intent.EXTRA_THEME_RESULT, resultCode);
         sendBroadcastAsUser(intent, UserHandle.ALL);
     }
 
